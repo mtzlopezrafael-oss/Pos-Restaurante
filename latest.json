@@ -1,8 +1,8 @@
 {
-  "version": "0.1.3",
-  "file": "code-0.1.3.asar",
+  "version": "0.1.4",
+  "file": "code-0.1.4.asar",
   "size": 178267,
-  "sha256": "528023b46526dcfa37d55140d3b75ee8a4812a35f6fe44ac065ecb464a7a86ff",
+  "sha256": "b5a5237eb0b34649365e50bc7927571de02b524ba4bd7077f1c34ea0ac204e49",
   "minLauncher": "0.1.3",
-  "notes": "Actualización automática con botón Actualizar"
+  "notes": "Primera actualización automática (sin cambios en el programa)"
 }
