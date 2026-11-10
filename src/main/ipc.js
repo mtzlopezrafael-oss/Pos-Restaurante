@@ -77,6 +77,13 @@ function registerIpc({ services, dataDir, backup, quit, restart, updater, confir
     'inventory.list': () => inventory.list(),
     'inventory.adjust': (p) => inventory.adjust(p),
     'inventory.movements': (p) => inventory.movements(p),
+    'inventory.saveItem': (p) => inventory.saveItem(p),
+    'inventory.removeItem': (p) => inventory.removeItem(p),
+    'inventory.adjustItem': (p) => inventory.adjustItem(p),
+    'inventory.itemProducts': (p) => inventory.itemProducts(p),
+    'inventory.setItemProducts': (p) => inventory.setItemProducts(p),
+    'inventory.productItems': (p) => inventory.productItems(p),
+    'inventory.setProductItems': (p) => inventory.setProductItems(p),
 
     'reports.sales': (p) => reports.sales(p),
 

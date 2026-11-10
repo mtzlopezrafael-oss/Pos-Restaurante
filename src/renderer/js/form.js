@@ -6,10 +6,11 @@
 //   { key: 'price', label: 'Precio', type: 'money' }
 //   { key: 'categoryId', label: 'Categoría', type: 'choice', options: [{ value, label }] }
 //   { key: 'trackStock', label: 'Lleva inventario', type: 'toggle' }
+//   { key: 'itemIds', label: 'Usa', type: 'multi', options: [{ value, label }] }  (el valor es un arreglo)
 //   visible: (values) => boolean   (opcional) oculta el campo segun otros valores
 //   placeholder: ejemplo que se ve dentro del teclado; emptyText: texto del renglon vacio
 
-import { h, add, money, btn, toast, openModal, choiceDialog } from './ui.js';
+import { h, add, money, btn, toast, openModal, choiceDialog, multiSelectDialog } from './ui.js';
 import { numpadDialog, textDialog } from './keyboard.js';
 
 function shown(field, values) {
@@ -23,6 +24,10 @@ function shown(field, values) {
     }
     case 'toggle':
       return value ? 'Sí' : 'No';
+    case 'multi': {
+      const labels = field.options.filter((o) => (value || []).includes(o.value)).map((o) => o.label);
+      return labels.length ? labels.join(', ') : field.emptyText || 'Ninguno';
+    }
     default:
       return value === '' || value == null ? field.emptyText || 'Toca para escribir' : String(value);
   }
@@ -41,6 +46,8 @@ async function edit(field, values) {
       return choiceDialog({ title: field.label, options: field.options, current: value, columns: field.columns || 2 });
     case 'toggle':
       return !value;
+    case 'multi':
+      return multiSelectDialog({ title: field.label, hint: field.hint || '', groups: [{ label: field.groupLabel || field.label, options: field.options }], selected: value || [], okText: 'Aceptar' });
     default:
       return null;
   }
@@ -54,7 +61,8 @@ export function renderFields(container, fields, values, onChange) {
       ...fields
         .filter((field) => !field.visible || field.visible(values))
         .map((field) => {
-          const empty = field.type !== 'toggle' && (values[field.key] === '' || values[field.key] == null);
+          const value = values[field.key];
+          const empty = field.type !== 'toggle' && (value === '' || value == null || (Array.isArray(value) && value.length === 0));
           return h('button', {
             class: `field ${field.type === 'toggle' ? 'field-toggle' : ''} ${field.type === 'toggle' && values[field.key] ? 'on' : ''}`,
             type: 'button',

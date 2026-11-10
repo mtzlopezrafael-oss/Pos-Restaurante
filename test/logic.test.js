@@ -137,16 +137,68 @@ test('corte de caja: esperado = fondo + efectivo + entradas - salidas', () => {
 test('inventario: entrada, merma y conteo', () => {
   const { inventory, find } = setup();
   const refresco = find('Refresco 600 ml');
-  const stockOf = () => inventory.list().find((p) => p.id === refresco.id).stock;
+  const stockOf = () => inventory.list().products.find((p) => p.id === refresco.id).stock;
   inventory.adjust({ productId: refresco.id, type: 'purchase', qty: 12 });
   assert.equal(stockOf(), 36);
   inventory.adjust({ productId: refresco.id, type: 'waste', qty: 1 });
   assert.equal(stockOf(), 35);
   inventory.adjust({ productId: refresco.id, type: 'count', qty: 4 });
   assert.equal(stockOf(), 4);
-  assert.equal(inventory.list()[0].id, refresco.id); // stock bajo aparece primero
+  assert.equal(inventory.list().products[0].id, refresco.id); // stock bajo aparece primero
   assert.equal(inventory.movements({ productId: refresco.id }).length, 3);
   assert.throws(() => inventory.adjust({ productId: find('Taco').id, type: 'purchase', qty: 1 }), /no lleva inventario/);
+});
+
+test('inventario compartido: varios productos descuentan del mismo', () => {
+  const { inventory, orders, cash, catalog, find, db } = setup();
+  const stock = (name) => inventory.list().items.find((i) => i.name === name).stock;
+  const shared = (name) => catalog.listProducts().find((p) => p.name === name);
+
+  inventory.saveItem({ name: 'Vaso 1/2 litro', stockMin: 10 });
+  inventory.saveItem({ name: 'Tapa', stockMin: 0 });
+  const [vaso, tapa] = ['Vaso 1/2 litro', 'Tapa'].map((name) => inventory.list().items.find((i) => i.name === name));
+  inventory.adjustItem({ itemId: vaso.id, type: 'purchase', qty: 50 });
+  inventory.adjustItem({ itemId: tapa.id, type: 'purchase', qty: 20 });
+
+  // Dos "sabores" usan el mismo vaso; uno ademas lleva tapa.
+  const fresca = find('Agua fresca');
+  const cafe = find('Café de olla');
+  inventory.setItemProducts({ itemId: vaso.id, productIds: [fresca.id, cafe.id] });
+  inventory.setProductItems({ productId: cafe.id, itemIds: [vaso.id, tapa.id] });
+  assert.equal(inventory.list().items.find((i) => i.id === vaso.id).product_count, 2);
+  assert.deepEqual(inventory.productItems({ productId: cafe.id }).sort(), [vaso.id, tapa.id].sort());
+  assert.equal(shared('Agua fresca').shared_stock, 50);
+  assert.equal(shared('Café de olla').shared_stock, 20); // manda el que menos alcanza: la tapa
+  assert.equal(shared('Café de olla').shared_names, 'Vaso 1/2 litro, Tapa');
+  assert.equal(shared('Taco').shared_stock, null);
+
+  cash.open({ openingCash: 0 });
+  const order = orders.pay({
+    items: [{ productId: fresca.id, qty: 3 }, { productId: cafe.id, qty: 2 }, { productId: find('Taco').id, qty: 1 }],
+    method: 'card',
+  });
+  assert.equal(stock('Vaso 1/2 litro'), 45); // 3 + 2 vasos
+  assert.equal(stock('Tapa'), 18); // solo el cafe lleva tapa
+
+  orders.cancel(order.id); // cancelar regresa lo descontado
+  assert.equal(stock('Vaso 1/2 litro'), 50);
+  assert.equal(stock('Tapa'), 20);
+
+  // Merma, conteo y desvincular.
+  inventory.adjustItem({ itemId: vaso.id, type: 'waste', qty: 5 });
+  inventory.adjustItem({ itemId: vaso.id, type: 'count', qty: 8 });
+  assert.equal(stock('Vaso 1/2 litro'), 8);
+  assert.equal(inventory.list().items[0].name, 'Vaso 1/2 litro'); // bajo su minimo: aparece primero
+  inventory.setItemProducts({ itemId: vaso.id, productIds: [fresca.id] });
+  assert.deepEqual(inventory.itemProducts({ itemId: vaso.id }), [fresca.id]);
+
+  // Eliminar el inventario: sus productos siguen vendiendose y ya no descuentan.
+  inventory.removeItem({ id: vaso.id });
+  assert.equal(shared('Agua fresca').shared_stock, null);
+  orders.pay({ items: [{ productId: fresca.id, qty: 1 }], method: 'card' });
+  assert.equal(db.prepare('SELECT stock FROM stock_items WHERE id = ?').get(vaso.id).stock, 8);
+  assert.throws(() => inventory.adjustItem({ itemId: vaso.id, type: 'purchase', qty: 1 }), /ya no existe/);
+  assert.throws(() => inventory.saveItem({ name: '   ' }), /Falta/);
 });
 
 test('reporte de ventas del dia', () => {

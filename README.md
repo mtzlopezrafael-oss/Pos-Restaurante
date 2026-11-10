@@ -10,7 +10,7 @@ Windows más nuevos), todo local: una sola computadora, sin servidor y sin inter
 - **Cobro**: efectivo (con cambio y billetes sugeridos), tarjeta o transferencia.
 - **Caja**: fondo inicial, entradas y salidas de efectivo, cierre con arqueo, reimpresión y cancelación de ventas.
 - **Productos**: alta y edición del menú. "Juntar parecidos" acomoda la lista (aquí y en Venta) para que queden juntos los nombres que comparten palabras; solo cambia el orden en pantalla.
-- **Inventario**: por pieza, para lo que se cuenta (refrescos, agua). Se descuenta al cobrar.
+- **Inventario**: propio de un producto (refrescos, agua) o compartido: un inventario como "Vaso 1/2 litro" al que se vinculan varios productos, y vender cualquiera descuenta del mismo. Se descuenta al cobrar y se regresa al cancelar.
 - **Reportes**: vendido, forma de pago, por día y lo más vendido.
 - **Ticket y cajón**: comandos ESC/POS directos a la impresora térmica; el cajón se abre por la impresora.
 
@@ -178,7 +178,7 @@ están verificados; el envío a la impresora hay que probarlo en la terminal.
 ## Pendientes conocidos
 
 - No hay usuarios ni PIN: cualquiera puede entrar a Productos, Ajustes o cancelar ventas.
-- El inventario es por pieza; no descuenta insumos por receta.
+- El inventario compartido descuenta 1 pieza por producto vendido; todavía no hay recetas con cantidades (la columna `qty` ya existe en `product_stock_items`).
 - No factura (CFDI) y no imprime comanda aparte para cocina.
 - Sin pagos mixtos (parte efectivo, parte tarjeta), propinas ni descuentos.
 - Hora del ticket: Windows 7 sin actualizaciones puede seguir aplicando el horario

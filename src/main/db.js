@@ -108,6 +108,41 @@ const MIGRATIONS = [
   CREATE INDEX idx_items_order    ON order_items(order_id);
   CREATE INDEX idx_stock_product  ON stock_movements(product_id);
   `,
+
+  // 2. Inventario compartido: un inventario (p. ej. "Vaso 1/2 litro") del que
+  //    descuentan varios productos. Solo agrega tablas; no toca las anteriores.
+  `
+  CREATE TABLE stock_items (
+    id        INTEGER PRIMARY KEY,
+    name      TEXT    NOT NULL,
+    stock     INTEGER NOT NULL DEFAULT 0,
+    stock_min INTEGER NOT NULL DEFAULT 0,
+    active    INTEGER NOT NULL DEFAULT 1
+  );
+
+  -- Que productos descuentan de que inventario, y cuantas piezas por venta.
+  CREATE TABLE product_stock_items (
+    product_id INTEGER NOT NULL REFERENCES products(id),
+    item_id    INTEGER NOT NULL REFERENCES stock_items(id),
+    qty        INTEGER NOT NULL DEFAULT 1 CHECK (qty > 0),
+    PRIMARY KEY (product_id, item_id)
+  );
+
+  -- Bitacora del inventario compartido (la de productos es stock_movements).
+  CREATE TABLE stock_item_movements (
+    id         INTEGER PRIMARY KEY,
+    item_id    INTEGER NOT NULL REFERENCES stock_items(id),
+    delta      INTEGER NOT NULL,
+    reason     TEXT    NOT NULL
+               CHECK (reason IN ('sale', 'purchase', 'waste', 'adjust', 'cancel')),
+    order_id   INTEGER REFERENCES orders(id),
+    created_at TEXT    NOT NULL
+  );
+
+  CREATE INDEX idx_links_item      ON product_stock_items(item_id);
+  CREATE INDEX idx_item_moves_item ON stock_item_movements(item_id);
+  CREATE INDEX idx_item_moves_order ON stock_item_movements(order_id);
+  `,
 ];
 
 function migrate(db) {

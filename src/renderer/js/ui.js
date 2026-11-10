@@ -174,6 +174,74 @@ export function choiceDialog({ title, options, columns = 2, current = undefined,
   });
 }
 
+// Varias opciones a la vez, en grupos. Regresa el arreglo de values elegidos, o
+// null si cancela. groups: [{ label, color?, options: [{ value, label }] }]
+export function multiSelectDialog({ title, hint = '', groups, selected = [], okText = 'Guardar' }) {
+  return new Promise((resolve) => {
+    const chosen = new Set(selected);
+    openModal(
+      (box, close) => {
+        const finish = (value) => {
+          close();
+          resolve(value);
+        };
+        const counter = h('span', { class: 'muted' });
+        const repaint = []; // una funcion por boton; se actualizan sin redibujar la lista (no pierde el scroll)
+        const refresh = () => {
+          counter.textContent = chosen.size === 1 ? '1 seleccionado' : `${chosen.size} seleccionados`;
+          for (const update of repaint) update();
+        };
+
+        const sections = groups.filter((group) => group.options.length > 0).map((group) => {
+          const allChosen = () => group.options.every((option) => chosen.has(option.value));
+          const toggleAll = h('button', {
+            class: 'btn btn-quiet',
+            type: 'button',
+            onClick: () => {
+              const clear = allChosen();
+              for (const option of group.options) (clear ? chosen.delete(option.value) : chosen.add(option.value));
+              refresh();
+            },
+          });
+          repaint.push(() => {
+            toggleAll.textContent = allChosen() ? 'Quitar todos' : 'Marcar todos';
+          });
+          return [
+            h('div', { class: 'multi-head' }, h('strong', null, group.label), group.options.length > 1 && toggleAll),
+            h('div', { class: 'choices', style: { '--cols': '3' } },
+              group.options.map((option) => {
+                const button = h('button', {
+                  class: `choice check ${group.color ? 'has-color' : ''}`,
+                  type: 'button',
+                  style: group.color ? { '--cat': group.color } : null,
+                  onClick: () => {
+                    if (chosen.has(option.value)) chosen.delete(option.value);
+                    else chosen.add(option.value);
+                    refresh();
+                  },
+                }, option.label);
+                repaint.push(() => button.classList.toggle('active', chosen.has(option.value)));
+                return button;
+              })),
+          ];
+        });
+
+        add(box,
+          h('h2', null, title),
+          hint && h('p', { class: 'modal-text' }, hint),
+          h('div', { class: 'multi' }, sections),
+          h('div', { class: 'modal-actions' },
+            counter,
+            h('span', { class: 'spacer' }),
+            btn('Cancelar', () => finish(null)),
+            btn(okText, () => finish([...chosen]), 'btn-primary')));
+        refresh();
+      },
+      { size: 'lg' }
+    );
+  });
+}
+
 // ---------- Iconos ----------
 // SVG en linea: Windows 7 no trae emojis a color y no hay internet para
 // bajar una fuente de iconos.

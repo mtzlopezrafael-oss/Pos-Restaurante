@@ -35,7 +35,15 @@ module.exports = function createCatalog(db) {
     listProducts() {
       return db
         .prepare(
-          `SELECT p.*, c.name AS category_name, c.color AS category_color
+          // shared_stock: cuantos se pueden vender segun sus inventarios
+          // compartidos (el que menos alcance manda); NULL si no usa ninguno.
+          `SELECT p.*, c.name AS category_name, c.color AS category_color,
+                  (SELECT MIN(i.stock / l.qty) FROM product_stock_items l
+                     JOIN stock_items i ON i.id = l.item_id AND i.active = 1
+                    WHERE l.product_id = p.id) AS shared_stock,
+                  (SELECT GROUP_CONCAT(i.name, ', ') FROM product_stock_items l
+                     JOIN stock_items i ON i.id = l.item_id AND i.active = 1
+                    WHERE l.product_id = p.id) AS shared_names
              FROM products p JOIN categories c ON c.id = p.category_id
             WHERE p.active = 1
             ORDER BY c.sort, c.id, p.name COLLATE NOCASE`

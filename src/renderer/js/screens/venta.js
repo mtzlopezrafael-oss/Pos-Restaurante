@@ -85,7 +85,12 @@ function renderGrid() {
   }
   els.grid.replaceChildren(
     ...visible.map((product) => {
-      const out = product.track_stock && product.stock <= 0;
+      // Lo que queda: inventario propio, compartido (vaso, tapa...) o el menor de los dos.
+      const counts = [];
+      if (product.track_stock) counts.push(product.stock);
+      if (product.shared_stock != null) counts.push(product.shared_stock);
+      const left = counts.length ? Math.min(...counts) : null;
+      const out = left !== null && left <= 0;
       return h('button', {
         class: `product ${out ? 'out' : ''}`,
         type: 'button',
@@ -95,7 +100,7 @@ function renderGrid() {
         h('span', { class: 'product-name' }, product.name),
         h('span', { class: 'product-meta' },
           h('span', { class: 'product-price' }, money(product.price)),
-          product.track_stock ? h('span', { class: 'product-stock' }, out ? 'Agotado' : `Hay ${product.stock}`) : null));
+          left !== null ? h('span', { class: 'product-stock' }, out ? 'Agotado' : `Hay ${left}`) : null));
     })
   );
 }

@@ -69,7 +69,7 @@ function paint() {
                   list.map((p) =>
                     h('button', { class: 'tr cols-prod tr-tap', type: 'button', onClick: () => editProduct(p) },
                       h('strong', null, p.name),
-                      h('span', { class: 'muted' }, p.track_stock ? `Inventario: ${p.stock}` : ''),
+                      h('span', { class: 'muted' }, [p.track_stock ? `Inventario: ${p.stock}` : '', p.shared_names ? `Usa: ${p.shared_names}` : ''].filter(Boolean).join(', ')),
                       h('span', { class: 'num' }, money(p.price)))))
               : h('p', { class: 'muted' }, 'Esta categoría todavía no tiene productos.'))
         : h('div', { class: 'split-main empty' }, h('p', null, 'Crea la primera categoría del menú: Comidas, Bebidas, Postres…'))
@@ -103,18 +103,31 @@ async function editCategory(category) {
 }
 
 async function editProduct(product) {
+  // Inventarios compartidos que existen y los que este producto ya usa.
+  const { items } = await call('inventory.list');
+  const linked = product ? await call('inventory.productItems', { productId: product.id }) : [];
   const result = await formDialog({
     title: product ? 'Editar producto' : 'Nuevo producto',
     fields: [
       { key: 'name', label: 'Nombre', type: 'text', maxLength: 40, placeholder: 'Enchiladas verdes' },
       { key: 'price', label: 'Precio', type: 'money' },
       { key: 'categoryId', label: 'Categoría', type: 'choice', options: categories.map((c) => ({ value: c.id, label: c.name, color: c.color })), columns: 3 },
-      { key: 'trackStock', label: 'Lleva inventario', hint: 'Para lo que se cuenta por pieza', type: 'toggle' },
+      { key: 'trackStock', label: 'Lleva inventario propio', hint: 'Para lo que se cuenta por pieza', type: 'toggle' },
       { key: 'stockMin', label: 'Avisar cuando queden', type: 'int', visible: (v) => v.trackStock },
+      {
+        key: 'itemIds',
+        label: 'Inventario compartido',
+        hint: 'Vaso, tapa o envase que descuenta al venderse',
+        type: 'multi',
+        groupLabel: 'Inventarios compartidos',
+        options: items.map((item) => ({ value: item.id, label: item.name })),
+        emptyText: 'Ninguno',
+        visible: () => items.length > 0,
+      },
     ],
     values: product
-      ? { name: product.name, price: product.price, categoryId: product.category_id, trackStock: Boolean(product.track_stock), stockMin: product.stock_min }
-      : { name: '', price: 0, categoryId: selected, trackStock: false, stockMin: 0 },
+      ? { name: product.name, price: product.price, categoryId: product.category_id, trackStock: Boolean(product.track_stock), stockMin: product.stock_min, itemIds: linked }
+      : { name: '', price: 0, categoryId: selected, trackStock: false, stockMin: 0, itemIds: [] },
     extra: product ? [{ label: 'Eliminar', action: 'remove', variant: 'btn-danger' }] : [],
   });
   if (!result) return;
@@ -130,7 +143,9 @@ async function editProduct(product) {
     await call('catalog.removeProduct', { id: product.id });
     toast('Producto eliminado');
   } else {
-    await call('catalog.saveProduct', { id: product && product.id, ...result.values });
+    const { itemIds, ...fields } = result.values;
+    const saved = await call('catalog.saveProduct', { id: product && product.id, ...fields });
+    if (items.length > 0) await call('inventory.setProductItems', { productId: saved.id, itemIds });
     toast('Producto guardado');
   }
   await reload();

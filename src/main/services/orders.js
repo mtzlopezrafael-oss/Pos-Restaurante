@@ -18,6 +18,15 @@ module.exports = function createOrders(db, cash) {
   const logStock = db.prepare(
     'INSERT INTO stock_movements (product_id, delta, reason, order_id, created_at) VALUES (?, ?, ?, ?, ?)'
   );
+  // Inventario compartido (ver inventory.js): de cuales descuenta un producto.
+  const sharedOf = db.prepare(
+    `SELECT l.item_id, l.qty FROM product_stock_items l JOIN stock_items i ON i.id = l.item_id
+      WHERE l.product_id = ? AND i.active = 1`
+  );
+  const moveShared = db.prepare('UPDATE stock_items SET stock = stock + ? WHERE id = ?');
+  const logShared = db.prepare(
+    'INSERT INTO stock_item_movements (item_id, delta, reason, order_id, created_at) VALUES (?, ?, ?, ?, ?)'
+  );
 
   function get(id) {
     const order = orderById.get(id);
@@ -95,9 +104,17 @@ module.exports = function createOrders(db, cash) {
     // Se permite quedar en negativo: es preferible vender y corregir el conteo
     // que bloquear la caja porque el inventario estaba mal capturado.
     for (const item of itemsOf.all(orderId)) {
-      if (!productById.get(item.product_id).track_stock) continue;
-      moveStock.run(-item.qty, item.product_id);
-      logStock.run(item.product_id, -item.qty, 'sale', orderId, now);
+      // Inventario propio del producto.
+      if (productById.get(item.product_id).track_stock) {
+        moveStock.run(-item.qty, item.product_id);
+        logStock.run(item.product_id, -item.qty, 'sale', orderId, now);
+      }
+      // Inventarios compartidos a los que esta vinculado (vaso, tapa...).
+      for (const link of sharedOf.all(item.product_id)) {
+        const used = link.qty * item.qty;
+        moveShared.run(-used, link.item_id);
+        logShared.run(link.item_id, -used, 'sale', orderId, now);
+      }
     }
     return get(orderId);
   });
@@ -120,6 +137,13 @@ module.exports = function createOrders(db, cash) {
       for (const movement of sold) {
         moveStock.run(-movement.delta, movement.product_id);
         logStock.run(movement.product_id, -movement.delta, 'cancel', id, now);
+      }
+      const shared = db
+        .prepare("SELECT item_id, delta FROM stock_item_movements WHERE order_id = ? AND reason = 'sale'")
+        .all(id);
+      for (const movement of shared) {
+        moveShared.run(-movement.delta, movement.item_id);
+        logShared.run(movement.item_id, -movement.delta, 'cancel', id, now);
       }
     }
     db.prepare("UPDATE orders SET status = 'cancelled', cancelled_at = ? WHERE id = ?").run(nowIso(), id);
