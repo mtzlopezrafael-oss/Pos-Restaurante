@@ -1,8 +1,8 @@
 {
-  "version": "0.1.4",
-  "file": "code-0.1.4.asar",
-  "size": 178267,
-  "sha256": "b5a5237eb0b34649365e50bc7927571de02b524ba4bd7077f1c34ea0ac204e49",
+  "version": "0.1.5",
+  "file": "code-0.1.5.asar",
+  "size": 196998,
+  "sha256": "2899e8e7f0a972100439e077d8c543a82c2bd29dd578a67adcdc0f33db00eeab",
   "minLauncher": "0.1.3",
-  "notes": "Primera actualización automática (sin cambios en el programa)"
+  "notes": "Inventario compartido: varios productos descuentan del mismo (vaso, tapa, envase)"
 }
