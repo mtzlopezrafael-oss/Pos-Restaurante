@@ -92,6 +92,12 @@ export function btn(label, onClick, variant = '', extra = {}) {
   return h('button', { class: `btn ${variant}`, type: 'button', onClick: safe(onClick), ...extra }, label);
 }
 
+// ---------- Margen de pantalla ----------
+// Deja `pixels` de franja vacia alrededor de toda la interfaz (ver app.css).
+export function setScreenMargin(pixels) {
+  document.body.style.setProperty('--inset', `${Number(pixels) || 0}px`);
+}
+
 // ---------- Avisos ----------
 export function toast(message, kind = 'info') {
   const el = h('div', { class: `toast ${kind}` }, message);

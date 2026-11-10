@@ -20,6 +20,9 @@ const SCHEMA = {
   ticketHeader: ['', text(120)],
   ticketFooter: ['Gracias por su preferencia', text(120)],
   tableCount: ['10', intBetween(1, 40)],
+  // Pixeles de margen alrededor de toda la interfaz. Sirve en pantallas
+  // tactiles que leen mal los toques pegados al marco.
+  screenMargin: ['0', oneOf('0', '24', '48', '72')],
   // file  = guarda el ticket en un archivo (para desarrollar sin impresora)
   // share = impresora USB instalada en Windows y compartida (\\localhost\TICKETS)
   // tcp   = impresora de red (192.168.1.50:9100)

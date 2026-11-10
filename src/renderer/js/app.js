@@ -2,7 +2,7 @@
 // Cada pantalla es un modulo con una funcion mount(contenedor, contexto).
 
 import './tap.js'; // toques confiables: debe cargarse antes que las pantallas
-import { h, fill, icon, call, toast, clock } from './ui.js';
+import { h, fill, icon, call, toast, clock, setScreenMargin } from './ui.js';
 import { restartToUpdate } from './update.js';
 import * as venta from './screens/venta.js';
 import * as caja from './screens/caja.js';
@@ -92,7 +92,9 @@ async function pollUpdate() {
   }
 }
 
-context.refreshStatus()
+call('settings.get')
+  .then((settings) => setScreenMargin(settings.screenMargin)) // antes de dibujar, para que no brinque
+  .then(() => context.refreshStatus())
   .then(() => go('venta'))
   .then(async () => {
     // La primera pantalla ya se dibujo: se avisa al lanzador que esta version

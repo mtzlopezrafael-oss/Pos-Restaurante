@@ -1,6 +1,6 @@
 // Pantalla de ajustes: datos del negocio, impresora y salida del programa.
 
-import { h, add, fill, call, btn, toast, openModal, confirmDialog } from '../ui.js';
+import { h, add, fill, call, btn, toast, openModal, confirmDialog, setScreenMargin } from '../ui.js';
 import { renderFields } from '../form.js';
 import { tapLog, onTap } from '../tap.js';
 import { restartToUpdate } from '../update.js';
@@ -79,6 +79,19 @@ export async function mount(container) {
     { key: 'tableCount', label: 'Número de mesas', type: 'int' },
   ], values, save);
 
+  const screen = h('div', { class: 'fields' });
+  renderFields(screen, [
+    { key: 'screenMargin', label: 'Margen de pantalla', hint: 'Aleja todo del marco si el touch falla en las orillas', type: 'choice', columns: 4, options: [
+      { value: '0', label: 'Sin margen' },
+      { value: '24', label: 'Chico' },
+      { value: '48', label: 'Mediano' },
+      { value: '72', label: 'Grande' },
+    ] },
+  ], values, async (key, value) => {
+    await save(key, value);
+    setScreenMargin(value); // se ve al instante
+  });
+
   const printer = h('div', { class: 'fields' });
   const targetHelp = h('p', { class: 'muted' });
   const paintHelp = () => {
@@ -142,6 +155,7 @@ export async function mount(container) {
         toast('Señal enviada al cajón');
       })),
     h('h2', null, 'Pantalla'),
+    screen,
     h('div', { class: 'button-row' }, btn('Probar pantalla táctil', touchTest)),
     h('h2', null, 'Actualizaciones'),
     h('p', null, info.source === 'update'

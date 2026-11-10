@@ -228,6 +228,9 @@ test('catalogo y ajustes validan lo que reciben', () => {
   assert.equal(settings.get().printerMode, 'file');
   assert.throws(() => settings.set({ printerMode: 'bluetooth' }), /no es válido/);
   assert.equal(settings.set({ businessName: 'Fonda Lupita', tableCount: 12 }).tableCount, '12');
+  assert.equal(settings.get().screenMargin, '0');
+  assert.equal(settings.set({ screenMargin: '48' }).screenMargin, '48');
+  assert.throws(() => settings.set({ screenMargin: '500' }), /no es válido/);
 });
 
 test('ESC/POS: acentos en CP850, cajon y corte', () => {

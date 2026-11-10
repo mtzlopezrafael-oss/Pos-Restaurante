@@ -103,6 +103,9 @@ estaba el cursor). Si un toque no responde: Ajustes → **Probar pantalla tácti
 qué recibió la app en cada toque. Si ahí no aparece nada al tocar, el toque se perdió
 antes de llegar a la app (driver o calibración de la pantalla).
 
+Si el touch falla junto al marco (toques en la orilla que caen en otro lado), Ajustes →
+**Margen de pantalla** aleja toda la interfaz de los bordes.
+
 ## Impresora y cajón en Windows 7
 
 1. Instala la impresora con su driver (o como "Generic / Text Only").

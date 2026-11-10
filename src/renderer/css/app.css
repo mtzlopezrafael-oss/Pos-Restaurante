@@ -28,8 +28,13 @@ html, body { height: 100%; margin: 0; }
 body {
   display: grid;
   grid-template-columns: 92px 1fr;
+  grid-template-rows: minmax(0, 1fr);
+  /* --inset lo pone ui.js segun el ajuste "Margen de pantalla": deja una franja
+     vacia alrededor de todo, para pantallas que leen mal los toques junto al
+     marco. La franja es del color de la barra lateral. */
+  padding: var(--inset, 0px);
   overflow: hidden;
-  background: var(--bg);
+  background: var(--ink);
   color: var(--ink);
   font-family: 'Segoe UI', system-ui, 'Helvetica Neue', Arial, sans-serif;
   font-size: 16px;
@@ -135,12 +140,12 @@ small { font-size: 13px; font-weight: 400; }
 .nav-update small { font-size: 11.5px; font-weight: 600; }
 .nav-clock { padding: 14px 0; text-align: center; color: #B9C3D0; font-size: 19px; font-variant-numeric: tabular-nums; }
 
-#screen { min-width: 0; height: 100vh; }
+#screen { min-width: 0; min-height: 0; background: var(--bg); }
 #screen > div { height: 100%; }
 
 /* ---------- Venta ---------- */
-.screen-venta { display: grid; grid-template-columns: 1fr 330px; }
-.menu { display: flex; flex-direction: column; gap: 12px; min-width: 0; height: 100vh; padding: 14px 4px 14px 14px; }
+.screen-venta { display: grid; grid-template-columns: 1fr 330px; grid-template-rows: minmax(0, 1fr); }
+.menu { display: flex; flex-direction: column; gap: 12px; min-width: 0; height: 100%; padding: 14px 4px 14px 14px; }
 
 .tabs { display: flex; flex-wrap: wrap; gap: 8px; padding-right: 10px; }
 .tab {
@@ -184,7 +189,7 @@ small { font-size: 13px; font-weight: 400; }
 .product.out .product-stock { color: var(--danger); font-weight: 600; }
 .product.out .product-name { color: var(--muted); }
 
-.ticket { display: flex; flex-direction: column; height: 100vh; background: var(--surface); border-left: 2px solid var(--line); }
+.ticket { display: flex; flex-direction: column; height: 100%; min-height: 0; background: var(--surface); border-left: 2px solid var(--line); }
 .ticket-head { display: flex; gap: 8px; padding: 10px; border-bottom: 2px solid var(--line-soft); }
 .ticket-label {
   flex: 1;
