@@ -63,8 +63,8 @@ administrador). Si la pantalla sale negra o parpadea, abre la app con `--no-gpu`
 
 ## Actualización automática
 
-El POS se actualiza solo desde los Releases de este repo. Al abrir (y cada 6 horas)
-consulta `releases/latest/download/latest.json`; si hay versión nueva baja el paquete
+El POS se actualiza solo desde la rama `updates` de este repo. Al abrir (y cada 6 horas)
+consulta `latest.json` en esa rama; si hay versión nueva baja el paquete
 de código (`code-X.Y.Z.asar`, unos 180 KB), comprueba tamaño y hash SHA-256 y lo guarda
 en `AppData\Roaming\POS Restaurante\updates`. Aparece el botón **Actualizar** en la
 barra lateral (y en Ajustes); la versión nueva entra al reiniciar, nunca a media venta.
@@ -74,17 +74,16 @@ barra lateral (y en Ajustes); la versión nueva entra al reiniciar, nunca a medi
 - Si la versión nueva truena al cargar o no llega a mostrar su pantalla, el lanzador la
   marca como fallida y regresa solo a la última que funcionó.
 - Antes de que una versión nueva toque la base se guarda una copia en `backups\antes-de-X.Y.Z-….db`.
-- Solo habla por HTTPS con github.com. El hash protege contra descargas dañadas o
+- Solo habla por HTTPS con GitHub (`raw.githubusercontent.com`). El hash protege contra descargas dañadas o
   alteradas en el camino, no contra alguien que entre a la cuenta de GitHub: actívale 2FA.
 
 ### Publicar una versión
 
-1. Sube `"version"` en `package.json` (por ejemplo a `0.1.5`) y haz commit.
-2. `npm run bundle -- "Qué cambió, en una frase"` deja `latest.json` y `code-0.1.5.asar` en `dist/release/`.
-3. Crea el release con tag `v0.1.5` y adjunta esos dos archivos:
-   `gh release create v0.1.5 dist/release/* --title "0.1.5" --notes "Qué cambió"`
+1. Sube `"version"` en `package.json` (por ejemplo a `0.1.5`), haz commit y push a `main`.
+2. `npm run bundle -- "Qué cambió, en una frase"` arma `latest.json` y `code-0.1.5.asar` en `dist/release/`.
+3. `npm run publish-update` los sube a la rama `updates`.
 
-Las terminales la bajan solas. El tag debe ser `v` + la versión exacta.
+Las terminales la bajan solas; GitHub puede tardar unos minutos en servir el archivo nuevo.
 
 Lo que NO viaja por actualización automática: Electron, `node_modules` y el propio
 lanzador (`boot.js`, `update-state.js`). Si cambias algo de eso hay que reinstalar el
@@ -159,7 +158,7 @@ src/
     js/keyboard.js      Teclado y numpad en pantalla
     js/form.js          Formularios táctiles
     js/screens/         Una pantalla por archivo
-scripts/                setup (binarios), run-tests y release (paquete de actualización)
+scripts/                setup (binarios), run-tests, release (arma la actualización) y publish (la sube)
 test/logic.test.js      Pruebas de ventas, caja, inventario, reportes y tickets
 ```
 

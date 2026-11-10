@@ -1,4 +1,4 @@
-// Arma lo que se sube a un Release de GitHub para que los POS se actualicen solos.
+// Arma el paquete de actualizacion de esta version. Lo publica scripts/publish.js.
 //
 //   npm run bundle -- "Texto corto de novedades"
 //
@@ -7,8 +7,8 @@
 //                     node_modules: el POS usa los que ya tiene instalados.
 //   latest.json       version, nombre, tamano y hash SHA-256 del archivo.
 //
-// Para publicar: sube la version en package.json, corre este script y crea el
-// release con tag vX.Y.Z adjuntando los dos archivos (ver README).
+// Para publicar: sube la version en package.json, haz commit, corre este
+// script y luego `npm run publish-update` (ver README).
 
 const fs = require('fs');
 const path = require('path');

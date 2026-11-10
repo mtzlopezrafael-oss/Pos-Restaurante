@@ -11,7 +11,8 @@
     "dev": "electron . --dev",
     "test": "node scripts/run-tests.js",
     "dist": "node scripts/setup.js --win && electron-builder --win --x64",
-    "bundle": "node scripts/release.js"
+    "bundle": "node scripts/release.js",
+    "publish-update": "node scripts/publish.js"
   },
   "dependencies": {
     "better-sqlite3": "9.6.0"

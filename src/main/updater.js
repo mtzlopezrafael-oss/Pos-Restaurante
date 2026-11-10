@@ -1,8 +1,8 @@
-// Actualizador: busca una version nueva en GitHub Releases, la descarga y la
+// Actualizador: busca una version nueva en la rama `updates` del repo, la descarga y la
 // deja lista para el siguiente arranque. Nunca reinicia por su cuenta ni
 // toca la base de datos; quien decide con que codigo arrancar es boot.js.
 //
-// En cada release hay dos archivos:
+// En esa rama hay dos tipos de archivo (los publica scripts/publish.js):
 //   latest.json       { version, file, sha256, size, notes, minLauncher }
 //   code-X.Y.Z.asar   el codigo de esa version (carpeta src + package.json)
 //
@@ -32,11 +32,11 @@ const isLocal = (url) => url.protocol === 'http:' && (url.hostname === '127.0.0.
 // POS_UPDATE_URL solo sirve para pruebas contra un servidor en esta misma maquina.
 function baseUrl() {
   const test = process.env.POS_UPDATE_URL || '';
-  return /^http:\/\/(127\.0\.0\.1|localhost):\d+$/.test(test) ? test : `https://github.com/${REPO}/releases`;
+  return /^http:\/\/(127\.0\.0\.1|localhost):\d+$/.test(test) ? test : `https://raw.githubusercontent.com/${REPO}/updates`;
 }
 
-// Descarga una URL a memoria, siguiendo redirecciones (GitHub manda los
-// archivos de un release a otro servidor) y con tope de tamano.
+// Descarga una URL a memoria, siguiendo redirecciones (solo hacia GitHub) y
+// con tope de tamano.
 function download(address, maxBytes, redirectsLeft = 5) {
   return new Promise((resolve, reject) => {
     const url = new URL(address);
@@ -109,7 +109,7 @@ function createUpdater({ boot, version }) {
   async function run() {
     set({ state: 'checking', message: 'Buscando actualización…' });
     const base = baseUrl();
-    const manifest = readManifest(await download(`${base}/latest/download/latest.json`, MAX_MANIFEST_BYTES));
+    const manifest = readManifest(await download(`${base}/latest.json`, MAX_MANIFEST_BYTES));
     const found = { version: manifest.version, notes: String(manifest.notes || '').slice(0, 300), checkedAt: new Date().toISOString() };
 
     if (!newer(manifest.version, version)) {
@@ -136,7 +136,7 @@ function createUpdater({ boot, version }) {
     }
     if (!alreadyHere) {
       set({ ...found, state: 'downloading', message: `Descargando la versión ${manifest.version}…` });
-      const data = await download(`${base}/download/v${manifest.version}/${manifest.file}`, MAX_BUNDLE_BYTES);
+      const data = await download(`${base}/${manifest.file}`, MAX_BUNDLE_BYTES);
       if (data.length !== manifest.size || hashOf(data) !== manifest.sha256) {
         throw new Error('la descarga llegó incompleta o alterada y se descartó');
       }
