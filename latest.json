@@ -1,8 +1,8 @@
 {
-  "version": "0.1.5",
-  "file": "code-0.1.5.asar",
-  "size": 196998,
-  "sha256": "2899e8e7f0a972100439e077d8c543a82c2bd29dd578a67adcdc0f33db00eeab",
+  "version": "0.1.6",
+  "file": "code-0.1.6.asar",
+  "size": 198489,
+  "sha256": "b2a0ba36ea9d753098de6bb189317f85f5eee72d0a68c30e4f70deaacc0dd7d6",
   "minLauncher": "0.1.3",
-  "notes": "Inventario compartido: varios productos descuentan del mismo (vaso, tapa, envase)"
+  "notes": "Margen de pantalla ajustable, para pantallas que fallan en las orillas"
 }
