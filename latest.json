@@ -1,8 +1,8 @@
 {
-  "version": "0.1.6",
-  "file": "code-0.1.6.asar",
-  "size": 198489,
-  "sha256": "b2a0ba36ea9d753098de6bb189317f85f5eee72d0a68c30e4f70deaacc0dd7d6",
+  "version": "0.1.7",
+  "file": "code-0.1.7.asar",
+  "size": 202195,
+  "sha256": "18bdf43300fe4564561f26796dfeae436879028019a0b29132a28418442c09a3",
   "minLauncher": "0.1.3",
-  "notes": "Margen de pantalla ajustable, para pantallas que fallan en las orillas"
+  "notes": "Revisión general: arranque más seguro, respaldos y toques con la palma apoyada"
 }
