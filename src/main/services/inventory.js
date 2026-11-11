@@ -113,7 +113,15 @@ module.exports = function createInventory(db) {
   }
 
   function itemProducts({ itemId }) {
-    return db.prepare('SELECT product_id FROM product_stock_items WHERE item_id = ?').all(itemId).map((r) => r.product_id);
+    // Solo productos vigentes: uno eliminado no aparece en pantalla y, al
+    // guardar la seleccion, su vinculo viejo se quita.
+    return db
+      .prepare(
+        `SELECT l.product_id FROM product_stock_items l JOIN products p ON p.id = l.product_id
+          WHERE l.item_id = ? AND p.active = 1`
+      )
+      .all(itemId)
+      .map((r) => r.product_id);
   }
 
   const setItemProducts = db.transaction(({ itemId, productIds }) => {

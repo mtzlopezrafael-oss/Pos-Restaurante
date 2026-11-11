@@ -43,6 +43,12 @@ export async function mount(container, context) {
   tableCount = Number(settings.tableCount);
   openCount = open.length;
   if (!categories.some((c) => c.id === activeCategory)) activeCategory = categories.length ? categories[0].id : null;
+  // Si mientras tanto se edito un producto, la cuenta en curso toma su nombre
+  // y precio actuales: es con lo que va a cobrar el proceso principal.
+  for (const item of ticket.items) {
+    const product = products.find((p) => p.id === item.productId);
+    if (product) Object.assign(item, { name: product.name, price: product.price });
+  }
 
   els = {
     tabs: h('div', { class: 'tabs' }),

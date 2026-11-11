@@ -12,14 +12,15 @@
 //   --no-gpu  apaga la aceleracion por GPU (si la pantalla sale negra o con
 //             parpadeos en una terminal vieja)
 
-const { app, BrowserWindow, Menu, session } = require('electron');
+const { app, BrowserWindow, Menu, session, dialog } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { openDatabase } = require('./db');
 const { createServices } = require('./services');
 const { registerIpc } = require('./ipc');
 const { createUpdater } = require('./updater');
-const { newer } = require('./update-state');
+const { newer, markFailed } = require('./update-state');
+const { pruneBackups } = require('./backups');
 
 // Version del codigo que esta corriendo. No se usa app.getVersion(): esa es la
 // del programa instalado, y este codigo puede venir de una actualizacion.
@@ -64,13 +65,7 @@ if (!app.requestSingleInstanceLock()) {
     fs.mkdirSync(folder, { recursive: true });
     const name = `pos-${new Date().toISOString().replace(/[:.]/g, '-')}.db`;
     await db.backup(path.join(folder, name)); // copia consistente aunque la app siga en uso
-    prune(folder, 'pos-', 30);
-  }
-
-  // Borra las copias mas viejas de un tipo (por prefijo) y deja las `keep` mas nuevas.
-  function prune(folder, prefix, keep) {
-    const old = fs.readdirSync(folder).filter((f) => f.startsWith(prefix) && f.endsWith('.db')).sort().reverse().slice(keep);
-    for (const file of old) fs.unlinkSync(path.join(folder, file));
+    pruneBackups(folder, 'pos-', 30);
   }
 
   // Al estrenar version (instalada a mano o por actualizacion automatica) se
@@ -90,7 +85,7 @@ if (!app.requestSingleInstanceLock()) {
       fs.mkdirSync(folder, { recursive: true });
       const name = `antes-de-${version}-${new Date().toISOString().replace(/[:.]/g, '-')}.db`;
       rawDb.prepare('VACUUM INTO ?').run(path.join(folder, name)); // copia completa y consistente
-      prune(folder, 'antes-de-', 5);
+      pruneBackups(folder, 'antes-de-', 5);
     } catch (error) {
       console.error('No se pudo respaldar antes de estrenar version:', error);
     }
@@ -129,7 +124,7 @@ if (!app.requestSingleInstanceLock()) {
     if (isDev) win.webContents.openDevTools({ mode: 'detach' });
   }
 
-  app.whenReady().then(() => {
+  function start() {
     session.defaultSession.setSpellCheckerEnabled(false); // sin corrector: no hay cajas de texto libres
     // En Windows: C:\Users\<usuario>\AppData\Roaming\POS Restaurante
     const dataDir = app.getPath('userData');
@@ -172,6 +167,32 @@ if (!app.requestSingleInstanceLock()) {
     });
 
     createWindow();
+  }
+
+  // Errores de SQLite que son del equipo (archivo danado, disco lleno, sin
+  // permiso) y no de esta version del programa.
+  const DISK_PROBLEM = /^SQLITE_(CORRUPT|NOTADB|CANTOPEN|FULL|IOERR|READONLY|BUSY|LOCKED|PERM|AUTH)/;
+
+  // Si el arranque falla (lo tipico: no se pudo abrir o migrar la base), el
+  // programa no debe quedarse corriendo sin ventana: o regresa a la version
+  // anterior, o explica que paso y se cierra.
+  app.whenReady().then(start).catch((error) => {
+    console.error('No se pudo arrancar:', error);
+    const diskProblem = DISK_PROBLEM.test(error.code || '');
+    if (boot.source === 'update' && !diskProblem) {
+      // Esta version llego por actualizacion y no arranca: se descarta y se
+      // reinicia con la anterior, sin esperar al temporizador del lanzador.
+      markFailed(boot.updatesDir, version);
+      app.relaunch();
+      app.exit(0);
+      return;
+    }
+    if (diskProblem) boot.confirmHealthy(); // el problema es del equipo: no culpar a la version
+    dialog.showErrorBox(
+      'POS Restaurante no pudo abrir',
+      `${error.message}\n\nLos datos están en:\n${app.getPath('userData')}\n\nEn la carpeta "backups" hay copias de la base de datos.`
+    );
+    app.exit(1);
   });
 
   app.on('window-all-closed', () => app.quit());

@@ -99,7 +99,7 @@ La base de datos no se toca: vive en `AppData`, fuera de la carpeta del programa
 
 `src/renderer/js/tap.js` decide qué botón se tocó con reglas más tolerantes que el
 click del navegador (dedo que resbala, toque largo, drivers que mandan el clic donde
-estaba el cursor). Si un toque no responde: Ajustes → **Probar pantalla táctil** muestra
+estaba el cursor, la palma apoyada mientras otro dedo toca). Si un toque no responde: Ajustes → **Probar pantalla táctil** muestra
 qué recibió la app en cada toque. Si ahí no aparece nada al tocar, el toque se perdió
 antes de llegar a la app (driver o calibración de la pantalla).
 

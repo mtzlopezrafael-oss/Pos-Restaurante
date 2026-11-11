@@ -20,9 +20,12 @@ const MARGIN = 12; // px de tolerancia alrededor del boton
 const JUMP_MS = 200; // un "salto" dura menos que esto...
 const JUMP_PX = 40; // ...y recorre mas que esto
 const NATIVE_CLICK_WINDOW = 1000; // ms en que se espera el click del navegador
+const STALE_MS = 30000; // un contacto mas viejo que esto se da por perdido
 
-let down = null; // el toque en curso
-let pressed = null; // boton que se ve presionado
+// Toques en curso, uno por contacto (pointerId). En pantallas multitactiles la
+// palma o el pulgar pueden estar apoyados mientras otro dedo toca un boton:
+// cada contacto se sigue por separado para que ese toque tambien cuente.
+const downs = new Map();
 let lastHandled = -Infinity; // cuando se resolvio el ultimo toque
 
 // Bitacora de los ultimos toques, para la prueba de pantalla en Ajustes.
@@ -41,9 +44,11 @@ function within(button, x, y) {
   return x >= box.left - MARGIN && x <= box.right + MARGIN && y >= box.top - MARGIN && y <= box.bottom + MARGIN;
 }
 
-function release() {
-  if (pressed) pressed.classList.remove('pressed');
-  pressed = null;
+// Quita el aspecto de "presionado", salvo que otro contacto siga sobre ese boton.
+function release(start) {
+  if (!start.button) return;
+  for (const other of downs.values()) if (other.button === start.button) return;
+  start.button.classList.remove('pressed');
 }
 
 function record(entry) {
@@ -53,24 +58,26 @@ function record(entry) {
 }
 
 document.addEventListener('pointerdown', (event) => {
-  release();
-  if (!event.isPrimary || event.button !== 0) {
-    down = null;
-    return;
+  if (event.pointerType === 'mouse' && event.button !== 0) return; // solo el boton izquierdo
+  // Limpieza: contactos cuyo "levantar" nunca llego (por ejemplo, se solto el
+  // raton sobre la barra de desplazamiento). Sin esto su boton se quedaria
+  // pintado como presionado.
+  for (const [id, old] of downs) {
+    if (id === event.pointerId || event.timeStamp - old.at > STALE_MS) {
+      downs.delete(id);
+      release(old);
+    }
   }
   const button = buttonOf(event.target);
-  down = { id: event.pointerId, type: event.pointerType, x: event.clientX, y: event.clientY, at: event.timeStamp, button };
-  if (button && !button.disabled) {
-    pressed = button;
-    button.classList.add('pressed'); // respuesta visual inmediata
-  }
+  downs.set(event.pointerId, { type: event.pointerType, x: event.clientX, y: event.clientY, at: event.timeStamp, button });
+  if (button && !button.disabled) button.classList.add('pressed'); // respuesta visual inmediata
 }, true);
 
 document.addEventListener('pointerup', (event) => {
-  if (!down || event.pointerId !== down.id) return;
-  const start = down;
-  down = null;
-  release();
+  const start = downs.get(event.pointerId);
+  if (!start) return;
+  downs.delete(event.pointerId);
+  release(start);
 
   const moved = Math.round(Math.hypot(event.clientX - start.x, event.clientY - start.y));
   const lasted = Math.round(event.timeStamp - start.at);
@@ -100,10 +107,11 @@ document.addEventListener('pointerup', (event) => {
 }, true);
 
 document.addEventListener('pointercancel', (event) => {
-  if (!down || event.pointerId !== down.id) return;
-  record({ type: down.type, from: label(down.button), to: '', moved: 0, lasted: Math.round(event.timeStamp - down.at), result: 'cancelado (desplazar)' });
-  down = null;
-  release();
+  const start = downs.get(event.pointerId);
+  if (!start) return;
+  downs.delete(event.pointerId);
+  release(start);
+  record({ type: start.type, from: label(start.button), to: '', moved: 0, lasted: Math.round(event.timeStamp - start.at), result: 'cancelado (desplazar)' });
 }, true);
 
 // El click "de fabrica" del navegador. isTrusted distingue un click real del

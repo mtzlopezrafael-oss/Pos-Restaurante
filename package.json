@@ -1,7 +1,7 @@
 {
   "name": "pos-restaurante",
   "productName": "POS Restaurante",
-  "version": "0.1.6",
+  "version": "0.1.7",
   "description": "Punto de venta tactil para restaurante, compatible con Windows 7 x64",
   "main": "src/main/boot.js",
   "private": true,

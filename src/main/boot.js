@@ -36,7 +36,14 @@ if (!app.requestSingleInstanceLock()) {
   process.env.NODE_PATH = [installedModules, process.env.NODE_PATH].filter(Boolean).join(path.delimiter);
   require('module').Module._initPaths();
 
-  const update = chooseUpdate(updatesDir, installedVersion);
+  let update = null;
+  try {
+    update = chooseUpdate(updatesDir, installedVersion);
+  } catch (error) {
+    // No se pudo leer o escribir el estado (disco lleno, permisos): se abre
+    // con la version instalada, que no depende de esa carpeta.
+    console.error('No se pudo revisar las actualizaciones:', error);
+  }
   let watchdog = null;
 
   const fallBack = (reason) => {

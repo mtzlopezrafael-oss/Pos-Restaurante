@@ -192,6 +192,14 @@ test('inventario compartido: varios productos descuentan del mismo', () => {
   inventory.setItemProducts({ itemId: vaso.id, productIds: [fresca.id] });
   assert.deepEqual(inventory.itemProducts({ itemId: vaso.id }), [fresca.id]);
 
+  // Un producto eliminado deja de contar como vinculado y su vinculo se limpia al guardar.
+  inventory.setItemProducts({ itemId: vaso.id, productIds: [fresca.id, cafe.id] });
+  catalog.removeProduct(cafe.id);
+  assert.deepEqual(inventory.itemProducts({ itemId: vaso.id }), [fresca.id]);
+  assert.equal(inventory.list().items.find((i) => i.id === vaso.id).product_count, 1);
+  inventory.setItemProducts({ itemId: vaso.id, productIds: [fresca.id] });
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM product_stock_items WHERE item_id = ?').get(vaso.id).n, 1);
+
   // Eliminar el inventario: sus productos siguen vendiendose y ya no descuentan.
   inventory.removeItem({ id: vaso.id });
   assert.equal(shared('Agua fresca').shared_stock, null);
@@ -323,6 +331,25 @@ test('lanzador: elige la actualizacion solo si es mas nueva, esta intacta y no h
   // Nombres raros en state.json no se usan como ruta.
   u.writeState(dir, { current: { version: '9.9.9', file: '../../algo.asar', sha256: 'x' }, failed: [] });
   assert.equal(u.chooseUpdate(dir, '0.1.3'), null);
+  fs.rmSync(dir, { recursive: true, force: true });
+});
+
+test('respaldos: se conservan los mas recientes por fecha, no por nombre', () => {
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const { pruneBackups } = require('../src/main/backups');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'pos-backups-'));
+  // "0.1.10" es mas nueva que "0.1.9", aunque como texto ordene antes.
+  const names = ['antes-de-0.1.8-a.db', 'antes-de-0.1.9-b.db', 'antes-de-0.1.10-c.db', 'antes-de-0.1.11-d.db', 'pos-2026-otro.db'];
+  names.forEach((name, index) => {
+    const file = path.join(dir, name);
+    fs.writeFileSync(file, 'x');
+    const time = new Date(Date.UTC(2026, 0, 1 + index));
+    fs.utimesSync(file, time, time);
+  });
+  pruneBackups(dir, 'antes-de-', 2);
+  assert.deepEqual(fs.readdirSync(dir).sort(), ['antes-de-0.1.10-c.db', 'antes-de-0.1.11-d.db', 'pos-2026-otro.db']);
   fs.rmSync(dir, { recursive: true, force: true });
 });
 

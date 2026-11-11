@@ -63,8 +63,10 @@ async function go(id) {
   screen.replaceChildren(view);
   try {
     await target.module.mount(view, context);
+    return true;
   } catch (error) {
     toast(error.message, 'error');
+    return false;
   }
 }
 
@@ -96,10 +98,11 @@ call('settings.get')
   .then((settings) => setScreenMargin(settings.screenMargin)) // antes de dibujar, para que no brinque
   .then(() => context.refreshStatus())
   .then(() => go('venta'))
-  .then(async () => {
-    // La primera pantalla ya se dibujo: se avisa al lanzador que esta version
-    // arranco bien (ver boot.js). Si este aviso no llega, el lanzador regresa
-    // solo a la version anterior.
+  .then(async (loaded) => {
+    // Si la primera pantalla se dibujo, se avisa al lanzador que esta version
+    // arranco bien (ver boot.js). Si no se dibujo, no se avisa: el lanzador
+    // regresa solo a la version anterior.
+    if (!loaded) return;
     await call('app.ready');
     const info = await call('app.info');
     if (info.rolledBackFrom) toast(`La versión ${info.rolledBackFrom} no arrancó bien. Se regresó a la ${info.version}.`, 'error');

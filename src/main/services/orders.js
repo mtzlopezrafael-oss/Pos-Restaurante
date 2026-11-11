@@ -175,7 +175,7 @@ module.exports = function createOrders(db, cash) {
         .prepare(
           `SELECT * FROM orders
             WHERE session_id = ? AND status IN ('paid', 'cancelled')
-            ORDER BY paid_at DESC LIMIT 100`
+            ORDER BY paid_at DESC LIMIT 300`
         )
         .all(session.id);
     },
